@@ -17,6 +17,7 @@ A private task-tracking application for a combined Personal and Work executive v
 - Task descriptions, notes, and a recorded change history
 - Search, filters, per-task editing, and completed-task reopening
 - CSV import and export, including notes and original task IDs
+- Private ChatGPT MCP integration for listing, creating, updating, completing, annotating, and prioritizing tasks directly in a chat
 - Soft deletion: removed tasks are hidden, not destroyed
 - Database rows owned by the authenticated ChatGPT user
 
@@ -59,6 +60,12 @@ Column headers: `id,category,title,priority,status,due_date,project,description,
 
 The repository includes only code and schema, not a production database or production task exports. The Site is configured owner-private. The API checks the Site-authenticated user on reads and writes, and records are scoped to that user's stable Site ID. Do not commit task exports, secrets, `.env` files, or production logs.
 
+## ChatGPT integration
+
+The hosted Site exposes an MCP endpoint at `POST /mcp`. Sites authenticates callers and limits access to the private Site owner; each data tool additionally requires the signed-in user's Site-scoped identity and filters all records to that owner. The `tools/list` operation advertises `list_tasks`, `get_task`, `task_summary`, `create_task`, `update_task`, `complete_task`, `add_task_note`, and `move_task`.
+
+After publication, install or connect the **Task Tracker** plugin under ChatGPT **Plugins → Personal → Created by you** if it is not already connected. Select or @mention that plugin when asking ChatGPT to work with tasks. Task changes are written directly to D1 and appear in the website. No Markdown synchronization is required.
+
 ## Scope
 
-Version 1 focuses on a reliable manually curated master list. Recurring tasks, notifications, AI-assisted task management, and Microsoft 365 integrations can be added later.
+Version 1 focuses on a reliable master list that can also be managed from ChatGPT. Recurring tasks, notifications, and Microsoft 365 integrations can be added later.
