@@ -1,4 +1,4 @@
-# Master Task Manager
+# Task Tracker
 
 A private task-tracking application for a combined Personal and Work executive view. The public source repository intentionally contains **no personal or MiTek task records**.
 

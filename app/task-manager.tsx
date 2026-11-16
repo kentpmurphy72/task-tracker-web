@@ -175,7 +175,7 @@ export default function TaskManager({ userName }: { userName: string }) {
       ...tasks.map((task) => [task.publicId, categoryName(task.categoryId), task.title, task.priority, task.status, task.dueDate || "", projectNameFor(task.projectId), task.description, task.sortOrder, notes.filter((note) => note.taskId === task.id).map((note) => note.body).join("\n---\n")])];
     const csv = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a"); link.href = url; link.download = `master-task-manager-${today()}.csv`; link.click();
+    const link = document.createElement("a"); link.href = url; link.download = `task-tracker-${today()}.csv`; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setNotice("CSV export downloaded.");
   };
@@ -239,7 +239,7 @@ export default function TaskManager({ userName }: { userName: string }) {
   return <div className="min-h-screen bg-[#f6f8fc] text-slate-900">
     {mobileMenu && <button aria-label="Close navigation" onClick={() => setMobileMenu(false)} className="fixed inset-0 z-30 bg-slate-950/50 lg:hidden"/>}
     <aside className={`fixed inset-y-0 left-0 z-40 flex w-[252px] flex-col bg-[#111d37] px-4 pb-5 pt-7 text-white transition-transform lg:translate-x-0 ${mobileMenu ? "translate-x-0" : "-translate-x-full"}`}>
-      <div className="mb-10 flex items-center gap-3 px-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 text-white shadow-lg shadow-blue-700/30"><CheckCheck size={24} strokeWidth={2.5}/></div><div><div className="text-[15px] font-bold tracking-tight">Master Tasks</div><div className="mt-0.5 text-[10px] font-medium uppercase tracking-[.14em] text-blue-200/70">Personal + Work</div></div></div>
+      <div className="mb-10 flex items-center gap-3 px-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 text-white shadow-lg shadow-blue-700/30"><CheckCheck size={24} strokeWidth={2.5}/></div><div><div className="text-[15px] font-bold tracking-tight">Task Tracker</div><div className="mt-0.5 text-[10px] font-medium uppercase tracking-[.14em] text-blue-200/70">Personal + Work</div></div></div>
       <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-slate-500">Workspace</div>
       <nav className="space-y-1" aria-label="Main navigation">{NAV.map(({ page: item, icon: Icon }) => <button key={item} onClick={() => openPage(item)} className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm font-medium transition-colors ${page === item ? "bg-blue-600 text-white shadow-lg shadow-blue-950/30" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}><span className="flex items-center gap-3"><Icon size={18} strokeWidth={1.9}/>{item}</span>{item === "Personal" || item === "Work" ? <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${page === item ? "bg-white/20" : "bg-white/10 text-slate-400"}`}>{activeForCategory(categories.find((c) => c.name === item)?.id || -1)}</span> : null}</button>)}</nav>
       <div className="mt-auto px-2"><div className="rounded-xl border border-white/10 bg-white/[.06] p-4"><div className="mb-1 flex items-center gap-2 text-xs font-semibold text-blue-200"><ShieldCheck size={15}/> Private workspace</div><p className="text-[11px] leading-5 text-slate-400">Your task data lives in the private database, not the public source repository.</p></div>
