@@ -18,6 +18,7 @@ A private task-tracking application for a combined Personal and Work executive v
 - Search, filters, per-task editing, and completed-task reopening
 - CSV import and export, including notes and original task IDs
 - Private ChatGPT MCP integration for listing, creating, updating, completing, annotating, and prioritizing tasks directly in a chat
+- Refresh button and automatic task reload when returning to the browser tab after changes from ChatGPT
 - Soft deletion: removed tasks are hidden, not destroyed
 - Database rows owned by the authenticated ChatGPT user
 

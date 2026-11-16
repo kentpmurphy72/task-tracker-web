@@ -5,7 +5,7 @@ import {
   Activity, ArrowDown, ArrowRight, ArrowUp, CalendarDays, Check, CheckCheck,
   CheckCircle2, ChevronRight, Circle, Clock3, Download, FileUp,
   FolderKanban, Home, LayoutDashboard, ListTodo, LoaderCircle, Menu,
-  Plus, Search, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, X,
+  Plus, RefreshCw, Search, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, X,
 } from "lucide-react";
 
 type Category = { id: number; name: string; prefix: string; sortOrder: number };
@@ -80,6 +80,7 @@ const csvCell = (value: string | number | null | undefined) => `"${String(value 
 export default function TaskManager({ userName }: { userName: string }) {
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -99,15 +100,49 @@ export default function TaskManager({ userName }: { userName: string }) {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [importPreview, setImportPreview] = useState<Record<string, unknown>[] | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
+  const refreshInFlight = useRef<Promise<void> | null>(null);
+  const lastAutoRefreshAt = useRef(0);
 
-  const refresh = useCallback(async () => {
-    const response = await fetch("/api/data", { cache: "no-store" });
-    const payload = await response.json() as Data & { error?: string };
-    if (!response.ok) throw new Error(payload.error || "Unable to load tasks.");
-    setData(payload);
-    setSelectedTask((selected) => selected ? payload.tasks.find((task: Task) => task.id === selected.id) ?? null : null);
+  const refresh = useCallback((): Promise<void> => {
+    if (refreshInFlight.current) return refreshInFlight.current;
+    setRefreshing(true);
+    const request = (async () => {
+      const response = await fetch("/api/data", { cache: "no-store" });
+      const payload = await response.json() as Data & { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Unable to load tasks.");
+      setData(payload);
+      setSelectedTask((selected) => selected ? payload.tasks.find((task: Task) => task.id === selected.id) ?? null : null);
+    })();
+    refreshInFlight.current = request;
+    const finish = () => { refreshInFlight.current = null; setRefreshing(false); };
+    void request.then(finish, finish);
+    return request;
   }, []);
   useEffect(() => { void Promise.resolve().then(refresh).catch((reason) => setError(reason.message)).finally(() => setLoading(false)); }, [refresh]);
+
+  // ChatGPT can update the same D1 database while this page is open. Recheck
+  // when the visitor returns, without replacing any unsaved form drafts.
+  useEffect(() => {
+    const refreshOnReturn = () => {
+      if (document.visibilityState !== "visible" || busy || showTaskForm || showProjectForm || importPreview) return;
+      if (Date.now() - lastAutoRefreshAt.current < 2000) return; // focus and visibilitychange often fire together
+      lastAutoRefreshAt.current = Date.now();
+      void refresh().catch(() => setError("Couldn't refresh tasks. Showing the last loaded data; try Refresh."));
+    };
+    const onVisibilityChange = () => { if (document.visibilityState === "visible") refreshOnReturn(); };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", refreshOnReturn);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", refreshOnReturn);
+    };
+  }, [busy, showTaskForm, showProjectForm, importPreview, refresh]);
+
+  const manualRefresh = () => {
+    setError(""); setNotice("");
+    void refresh().then(() => setNotice("Task list is up to date.")).catch((reason) =>
+      setError(reason instanceof Error ? reason.message : "Could not refresh tasks."));
+  };
 
   const mutate = async (action: string, payload: Record<string, unknown>, success?: string) => {
     setBusy(true); setError(""); setNotice("");
@@ -250,7 +285,7 @@ export default function TaskManager({ userName }: { userName: string }) {
     <div className="min-h-screen lg:pl-[252px]">
       <header className="sticky top-0 z-20 flex h-[73px] items-center justify-between border-b border-slate-200/90 bg-white/95 px-5 backdrop-blur-lg sm:px-8 lg:px-10">
         <div className="flex min-w-0 items-center gap-3"><button aria-label="Open navigation" onClick={() => setMobileMenu(true)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"><Menu size={20}/></button><span className="text-[13px] text-slate-400">Workspace</span><ChevronRight size={14} className="text-slate-300"/><span className="truncate text-[13px] font-semibold text-slate-700">{page}</span></div>
-        <div className="flex items-center gap-3"><span className="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-700 sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500"/> Private</span><button onClick={() => openCreate()} className="flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-sm shadow-blue-200 transition-colors hover:bg-blue-700"><Plus size={16}/> <span className="hidden sm:inline">New Task</span><span className="sm:hidden">Add</span></button></div>
+        <div className="flex items-center gap-3"><span className="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-700 sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500"/> Private</span><button type="button" aria-label="Refresh tasks" title="Get the latest tasks from ChatGPT and the website" disabled={busy || refreshing} onClick={manualRefresh} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"><RefreshCw size={16} className={refreshing ? "animate-spin" : ""}/><span className="hidden sm:inline">Refresh</span></button><button onClick={() => openCreate()} className="flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-sm shadow-blue-200 transition-colors hover:bg-blue-700"><Plus size={16}/> <span className="hidden sm:inline">New Task</span><span className="sm:hidden">Add</span></button></div>
       </header>
 
       <main className="mx-auto max-w-[1430px] px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
