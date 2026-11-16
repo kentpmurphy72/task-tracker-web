@@ -90,7 +90,9 @@ async function createTask(db: Database, ownerId: string, input: TaskInput, impor
     ownerId, categoryId: category.id, projectId, publicId, title, description,
     status: String(status), priority: String(priority), dueDate: input.dueDate ? String(input.dueDate) : null,
     sortOrder: desiredOrder, createdAt, updatedAt: createdAt,
-    completedAt: status === "Complete" ? createdAt : null,
+    // Historical imports should not masquerade as tasks completed today.
+    // Their exact completion dates may be unknown; preserve that as null.
+    completedAt: status === "Complete" && !importMode ? createdAt : null,
   }).returning();
   await addHistory(db, ownerId, created.id, "Created", null, null, title);
   if (typeof input.note === "string" && input.note.trim()) {
